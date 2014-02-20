@@ -32,28 +32,46 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** \author Adolfo Rodriguez Tsouroukdissian. */
 /** \author Paul Mathieu.                     */
 
-#ifndef PM_DATATYPES_H
-#define PM_DATATYPES_H
+#ifndef PLAYMOTIONSERVER_H
+#define PLAYMOTIONSERVER_H
 
+#include <string>
 #include <vector>
-#include <ros/duration.h>
+#include <map>
+#include <ros/ros.h>
+#include <boost/shared_ptr.hpp>
+#include <actionlib/server/action_server.h>
+
+#include "play_motion/play_motion.h"
+#include "play_motion_msgs/PlayMotionAction.h"
 
 namespace play_motion
 {
+  class PlayMotionServer
+  {
+  private:
+    typedef actionlib::ActionServer<play_motion_msgs::PlayMotionAction> AlServer;
+    typedef boost::shared_ptr<PlayMotion> PlayMotionPtr;
 
-struct TrajPoint
-{
-  std::vector<double> positions;
-  std::vector<double> velocities;
-  ros::Duration       time_from_start;
-};
+  public:
+    PlayMotionServer(const ros::NodeHandle& nh, const PlayMotionPtr& pm);
+    virtual ~PlayMotionServer();
 
-typedef std::vector<std::string> JointNames;
-typedef std::vector<TrajPoint>   Trajectory;
+  private:
+    void playMotionCb(const PlayMotion::GoalHandle& goal_hdl);
+    void alCancelCb(AlServer::GoalHandle gh);
+    void alGoalCb(AlServer::GoalHandle gh);
+    bool findGoalId(AlServer::GoalHandle gh, PlayMotion::GoalHandle& goal_id);
 
+    ros::NodeHandle                                        nh_;
+    std::vector<std::string>                               clist_;
+    PlayMotionPtr                                          pm_;
+    AlServer                                               al_server_;
+    std::map<PlayMotion::GoalHandle, AlServer::GoalHandle> al_goals_;
+  };
 }
-
 
 #endif
