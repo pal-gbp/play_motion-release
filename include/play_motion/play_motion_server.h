@@ -46,31 +46,31 @@
 #include <actionlib/server/action_server.h>
 
 #include "play_motion/play_motion.h"
-#include "play_motion/PlayMotionAction.h"
+#include "play_motion_msgs/PlayMotionAction.h"
 
 namespace play_motion
 {
   class PlayMotionServer
   {
-    private:
-      typedef actionlib::ActionServer<play_motion::PlayMotionAction> AlServer;
-      typedef boost::shared_ptr<PlayMotion> PlayMotionPtr;
+  private:
+    typedef actionlib::ActionServer<play_motion_msgs::PlayMotionAction> AlServer;
+    typedef boost::shared_ptr<PlayMotion> PlayMotionPtr;
 
-    public:
-      PlayMotionServer(const ros::NodeHandle& nh, const PlayMotionPtr& pm);
-      virtual ~PlayMotionServer();
+  public:
+    PlayMotionServer(const ros::NodeHandle& nh, const PlayMotionPtr& pm);
+    virtual ~PlayMotionServer();
 
-    private:
-      void playMotionCb(const PlayMotion::GoalHandle& goal_hdl);
-      void alCancelCb(AlServer::GoalHandle gh);
-      void alGoalCb(AlServer::GoalHandle gh);
-      bool findGoalId(AlServer::GoalHandle gh, PlayMotion::GoalHandle& goal_id);
+  private:
+    void playMotionCb(const PlayMotion::GoalHandle& goal_hdl);
+    void alCancelCb(AlServer::GoalHandle gh);
+    void alGoalCb(AlServer::GoalHandle gh);
+    bool findGoalId(AlServer::GoalHandle gh, PlayMotion::GoalHandle& goal_id);
 
-      ros::NodeHandle                                        nh_;
-      std::vector<std::string>                               clist_;
-      PlayMotionPtr                                          pm_;
-      AlServer                                               al_server_;
-      std::map<PlayMotion::GoalHandle, AlServer::GoalHandle> al_goals_;
+    ros::NodeHandle                                        nh_;
+    std::vector<std::string>                               clist_;
+    PlayMotionPtr                                          pm_;
+    AlServer                                               al_server_;
+    std::map<PlayMotion::GoalHandle, AlServer::GoalHandle> al_goals_;
   };
 }
 
