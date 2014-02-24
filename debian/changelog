@@ -1,7 +1,0 @@
-ros-hydro-play-motion-msgs (0.3.3-0quantal) quantal; urgency=high
-
-  * separate messages from play_motion into new package play_motion_msgs
-
- -- Paul Mathieu <paul.mathieu@pal-robotics.com>  Wed, 19 Feb 2014 23:00:00 -0000
-
-
