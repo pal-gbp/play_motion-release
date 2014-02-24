@@ -39,7 +39,7 @@
 #define REACHPOSE_H
 
 #include <string>
-#include <vector>
+#include <list>
 #include <map>
 #include <ros/ros.h>
 #include <boost/foreach.hpp>
@@ -81,7 +81,7 @@ namespace play_motion
     typedef boost::shared_ptr<Goal> GoalHandle;
   private:
     typedef boost::shared_ptr<MoveJointGroup>        MoveJointGroupPtr;
-    typedef std::vector<MoveJointGroupPtr>           ControllerList;
+    typedef std::list<MoveJointGroupPtr>             ControllerList;
     typedef boost::function<void(const GoalHandle&)> Callback;
 
   public:
@@ -95,13 +95,14 @@ namespace play_motion
       int            active_controllers;
       Callback       cb;
       ControllerList controllers;
+      bool           canceled;
 
       ~Goal();
       void cancel();
       void addController(const MoveJointGroupPtr& ctrl);
 
     private:
-      Goal(const Callback& cbk) : error_code(0), active_controllers(0), cb(cbk) {}
+      Goal(const Callback& cbk);
     };
 
     PlayMotion(ros::NodeHandle& nh);
@@ -115,7 +116,6 @@ namespace play_motion
 
   private:
     void jointStateCb(const sensor_msgs::JointStatePtr& msg);
-    void controllerCb(int error_code, GoalHandle goal_hdl);
 
     bool getGroupTraj(MoveJointGroupPtr move_joint_group,
                       const JointNames& motion_joints,
@@ -125,13 +125,6 @@ namespace play_motion
     void checkControllers(const JointNames& motion_joints);
     void updateControllersCb(const ControllerUpdater::ControllerStates& states,
                              const ControllerUpdater::ControllerJoints& joints);
-
-    /// \brief Populate velocities to trajectory waypoints not specifying them.
-    /// \param traj_in Input trajectory
-    /// \param traj_out Output trajectory. Has complete velocity specification.
-    /// \note It's allowed to alias \p traj_in and \traj_out; that is, to provide the same trajectory instance
-    /// as input and output parameters for in-place, work.
-    void populateVelocities(const Trajectory& traj_in, Trajectory& traj_out);
 
     ros::NodeHandle                  nh_;
     ControllerList                   move_joint_groups_;
