@@ -1,0 +1,12 @@
+Source: ros-hydro-play-motion-msgs
+Section: misc
+Priority: extra
+Maintainer: Paul Mathieu <paul.mathieu@pal-robotics.com>
+Build-Depends: debhelper (>= 7.0.50~), ros-hydro-actionlib-msgs, ros-hydro-catkin, ros-hydro-message-generation
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-hydro-play-motion-msgs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-hydro-actionlib-msgs, ros-hydro-message-runtime
+Description: Messages, services and actions used by play_motion.
