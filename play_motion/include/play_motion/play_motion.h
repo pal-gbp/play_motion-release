@@ -56,6 +56,7 @@ namespace play_motion
   typedef play_motion_msgs::PlayMotionResult PMR;
 
   class MoveJointGroup;
+  class ApproachPlanner;
 
   class PMException : public ros::Exception
   {
@@ -64,7 +65,7 @@ namespace play_motion
       : ros::Exception(what)
     { error_code_ = error_code; }
 
-    const int error_code() const
+    int error_code() const
     { return error_code_; }
 
   private:
@@ -83,6 +84,7 @@ namespace play_motion
     typedef boost::shared_ptr<MoveJointGroup>        MoveJointGroupPtr;
     typedef std::list<MoveJointGroupPtr>             ControllerList;
     typedef boost::function<void(const GoalHandle&)> Callback;
+    typedef boost::shared_ptr<ApproachPlanner>       ApproachPlannerPtr;
 
   public:
     class Goal
@@ -109,10 +111,12 @@ namespace play_motion
 
     /// \brief Send motion goal request
     /// \param motion_name Name of motion to execute.
-    /// \param duration Motion duration.
+    /// \param skip_planning Skip motion planning for computing the approach trajectory.
     /// \param[out] goal_id contains the goal ID if function returns true
-    bool run(const std::string& motion_name, const ros::Duration& duration,
-             GoalHandle& gh, const Callback& cb);
+    bool run(const std::string& motion_name,
+             bool               skip_planning,
+             GoalHandle&        gh,
+             const Callback&    cb);
 
   private:
     void jointStateCb(const sensor_msgs::JointStatePtr& msg);
@@ -122,7 +126,15 @@ namespace play_motion
                       const Trajectory& motion_points, Trajectory& traj_group);
     void getMotionJoints(const std::string& motion_name, JointNames& motion_joints);
     void getMotionPoints(const std::string& motion_name, Trajectory& motion_points);
-    void checkControllers(const JointNames& motion_joints);
+
+    /// \brief Populate a list of controllers that span the motion joints.
+    ///
+    /// In the general case, the controllers will span more than the motion joints, but never less.
+    /// This method also validates that the controllers are not busy executing another goal.
+    /// \param motion_joints List of motion joints.
+    /// \return A list of controllers that span (at least) all the motion joints.
+    /// \throws PMException if no controllers spanning the motion joints were found, or if some of them are busy.
+    ControllerList getMotionControllers(const JointNames& motion_joints);
     void updateControllersCb(const ControllerUpdater::ControllerStates& states,
                              const ControllerUpdater::ControllerJoints& joints);
 
@@ -131,6 +143,7 @@ namespace play_motion
     std::map<std::string, double>    joint_states_;
     ros::Subscriber                  joint_states_sub_;
     ControllerUpdater                ctrlr_updater_;
+    ApproachPlannerPtr               approach_planner_;
   };
 }
 

@@ -39,6 +39,8 @@
 #include <boost/foreach.hpp>
 
 #include "play_motion/play_motion.h"
+#include "play_motion/play_motion_helpers.h"
+#include "play_motion/xmlrpc_helpers.h"
 
 #define foreach BOOST_FOREACH
 
@@ -52,6 +54,10 @@ namespace play_motion
     al_server_.registerGoalCallback(boost::bind(&PlayMotionServer::alGoalCb, this, _1));
     al_server_.registerCancelCallback(boost::bind(&PlayMotionServer::alCancelCb, this, _1));
     al_server_.start();
+
+    list_motions_srv_ = ros::NodeHandle("~").advertiseService("list_motions",
+                                                              &PlayMotionServer::listMotions,
+                                                              this);
   }
 
   PlayMotionServer::~PlayMotionServer()
@@ -75,12 +81,12 @@ namespace play_motion
 
     if (r.error_code == PMR::SUCCEEDED)
     {
-      ROS_INFO("motion played sucecssfully");
+      ROS_INFO("Motion played successfully.");
       al_goals_[goal_hdl].setSucceeded(r);
     }
     else
     {
-      ROS_WARN("motion ended with an error");
+      ROS_WARN("Motion ended with an error.");
       al_goals_[goal_hdl].setAborted(r);
     }
     al_goals_.erase(goal_hdl);
@@ -92,7 +98,7 @@ namespace play_motion
     if (findGoalId(gh, goal_hdl))
       goal_hdl->cancel(); //should not be needed
     else
-      ROS_ERROR("cancel request could not be fulfilled. Goal not running?");
+      ROS_ERROR("Cancel request could not be fulfilled. Goal not running?.");
 
     al_goals_.erase(goal_hdl);
     gh.setCanceled();
@@ -101,19 +107,48 @@ namespace play_motion
   void PlayMotionServer::alGoalCb(AlServer::GoalHandle gh)
   {
     AlServer::GoalConstPtr goal = gh.getGoal(); //XXX: can this fail? should we check it?
-    ROS_INFO_STREAM("sending motion '" << goal->motion_name << "' to controllers");
+    ROS_INFO_STREAM("Received request to play motion '" << goal->motion_name << "'.");
     PlayMotion::GoalHandle goal_hdl;
-    if (!pm_->run(goal->motion_name, goal->reach_time, goal_hdl,
+    if (!pm_->run(goal->motion_name,
+                  goal->skip_planning,
+                  goal_hdl,
                   boost::bind(&PlayMotionServer::playMotionCb, this, _1)))
     {
       PMR r;
       r.error_code = goal_hdl->error_code;
       r.error_string = goal_hdl->error_string;
-      ROS_WARN_STREAM("motion '" << goal->motion_name << "' could not be played");
+      if (!r.error_string.empty())
+        ROS_ERROR_STREAM(r.error_string);
+      ROS_ERROR_STREAM("Motion '" << goal->motion_name << "' could not be played.");
       gh.setRejected(r);
       return;
     }
     gh.setAccepted();
     al_goals_[goal_hdl] = gh;
+  }
+
+  bool PlayMotionServer::listMotions(play_motion_msgs::ListMotions::Request&  req,
+                                     play_motion_msgs::ListMotions::Response& resp)
+  {
+    try
+    {
+      MotionNames motions;
+      ros::NodeHandle pnh("~");
+      getMotionIds(pnh, motions);
+      foreach (const std::string& motion, motions)
+      {
+        play_motion_msgs::MotionInfo info;
+        info.name = motion;
+        getMotionJoints(pnh, motion, info.joints);
+        getMotionDuration(pnh, motion);
+        resp.motions.push_back(info);
+      }
+    }
+    catch (const xh::XmlrpcHelperException& e)
+    {
+      ROS_ERROR_STREAM(e.what());
+      return false;
+    }
+    return true;
   }
 }
